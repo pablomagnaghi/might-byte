@@ -1,0 +1,45 @@
+services:
+  redis:
+    image: 'redis/redis-stack'
+    ports:
+      - '6379:6379'
+      - '8001:8001'
+    networks:
+      - urlnet
+
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+      - 5673:5672
+      - 15673:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - rabbitmq
+
+  server:
+    build:
+      context: ./server/shortener-url
+      dockerfile: Dockerfile
+    environment:
+      LOCALHOST: http://localhost:3000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_QUEUE: shortenedURL
+    ports:
+      - '3000:3000'
+    volumes:
+      - './server/shortener-url:/app'
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - urlnet
+      - rabbitmq
+
+networks:
+  urlnet:
+  rabbitmq:
